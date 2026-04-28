@@ -1,0 +1,12 @@
+{
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "rewrites": [
+    { "source": "/nexus",           "destination": "/nexus/index.html" },
+    { "source": "/nexus/games/:p*", "destination": "/nexus/games/:p*" },
+    { "source": "/nexus/:p*",       "destination": "/nexus/:p*" }
+  ]
+}

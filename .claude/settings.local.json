@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find 'C:/Users/aiden/Documents/Code/Jujutsu Hunters/jujutsuhunters' -name *.yml -o -name *.yaml)",
+      "Bash(grep -rl \"electronAPI\\\\|checkForUpdates\\\\|update-available\\\\|downloadUpdate\" 'C:/Users/aiden/Documents/Code/Jujutsu Hunters/jujutsuhunters/' --include=*.js --include=*.html)",
+      "Bash(git fetch *)"
+    ]
+  }
+}

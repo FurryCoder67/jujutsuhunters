@@ -1,0 +1,13 @@
+{
+  "name": "hunters-jjk",
+  "version": "1.0.8",
+  "description": "HUNTERS — Jujutsu Kaisen FPS",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FurryCoder67/jujutsuhunters.git"
+  },
+  "dependencies": {
+    "@vercel/kv": "^2.0.0",
+    "ws": "^8.0.0"
+  }
+}
