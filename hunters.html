@@ -2100,128 +2100,448 @@
 
     </div>
 
-    <!-- SPAWN SCREEN / 3D LOBBY -->
-    <div id="s-spawn" class="screen" style="overflow:hidden;padding:0;background:#04020a;">
-        <!-- 3D canvas — player walks around, zones trigger overlays -->
-        <canvas id="lobby-canvas" style="position:absolute;inset:0;width:100%;height:100%;z-index:0;cursor:crosshair;"></canvas>
+    <!-- LOBBY SCREEN — jujutsu hunters.jpg style top-down map -->
+    <div id="s-spawn" class="screen" style="overflow:hidden;padding:0;background:#04020a;align-items:stretch;justify-content:stretch;">
+        <canvas id="lobby-canvas" style="display:none"></canvas>
+        <canvas id="lobby-map-canvas" style="position:absolute;inset:0;width:100%;height:100%;z-index:1;"></canvas>
 
         <!-- Top bar -->
-        <div style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:linear-gradient(180deg,rgba(4,2,10,0.9) 0%,transparent 100%);pointer-events:none;">
-            <button onclick="G.showScreen('s-menu')" style="pointer-events:all;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:#e8e0ff;padding:7px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.08em;">&#8592; HQ</button>
-            <div style="font-size:11px;color:rgba(157,142,196,0.7);letter-spacing:.12em;">CLICK TO CAPTURE MOUSE · WASD TO WALK · WALK INTO A PORTAL</div>
-            <div id="lobby-char-name" style="font-size:12px;color:#c4b5fd;font-weight:700;letter-spacing:.1em;">SOLDIER</div>
+        <div style="position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:linear-gradient(180deg,rgba(4,2,10,0.95) 0%,transparent 100%);pointer-events:none;">
+            <button onclick="G.showScreen('s-menu')" style="pointer-events:all;background:none;border:1px solid rgba(196,181,253,0.2);color:rgba(196,181,253,0.7);padding:6px 16px;border-radius:3px;cursor:pointer;font-size:11px;letter-spacing:3px;font-family:inherit;" onmouseover="this.style.color='#fff';this.style.borderColor='rgba(196,181,253,0.6)'" onmouseout="this.style.color='rgba(196,181,253,0.7)';this.style.borderColor='rgba(196,181,253,0.2)'">&#8592; MENU</button>
+            <div style="text-align:center;">
+                <div style="font-size:13px;font-weight:900;letter-spacing:.2em;color:#c4b5fd;">JUJUTSU HUNTERS</div>
+                <div style="font-size:9px;letter-spacing:.15em;color:rgba(157,142,196,0.45);margin-top:1px;">WASD TO MOVE · WALK INTO ZONE OR CLICK IT</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:7px;pointer-events:none;">
+                <div style="width:6px;height:6px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px #22c55e;animation:blink2 2s infinite;"></div>
+                <div id="lobby-player-count" style="font-size:10px;color:rgba(157,142,196,0.5);letter-spacing:.08em;">0 ONLINE</div>
+            </div>
         </div>
 
-        <!-- Zone compass -->
-        <div style="position:absolute;bottom:20px;right:20px;z-index:10;display:grid;grid-template-columns:1fr 1fr;gap:5px;pointer-events:none;">
-            <div style="background:rgba(37,99,235,.18);border:1px solid rgba(37,99,235,.35);border-radius:6px;padding:5px 8px;font-size:9px;color:#88aaff;text-align:center;letter-spacing:.06em;">📋 MISSIONS<br><span style="opacity:.5;font-size:8px">NORTH</span></div>
-            <div style="background:rgba(220,38,38,.18);border:1px solid rgba(220,38,38,.35);border-radius:6px;padding:5px 8px;font-size:9px;color:#ff8888;text-align:center;letter-spacing:.06em;">👹 BOSSES<br><span style="opacity:.5;font-size:8px">EAST</span></div>
-            <div style="background:rgba(217,119,6,.18);border:1px solid rgba(217,119,6,.35);border-radius:6px;padding:5px 8px;font-size:9px;color:#ffcc88;text-align:center;letter-spacing:.06em;">🏪 MARKET<br><span style="opacity:.5;font-size:8px">WEST</span></div>
-            <div style="background:rgba(124,58,237,.18);border:1px solid rgba(124,58,237,.35);border-radius:6px;padding:5px 8px;font-size:9px;color:#c4b5fd;text-align:center;letter-spacing:.06em;">⚡ SKILLS<br><span style="opacity:.5;font-size:8px">SOUTH</span></div>
+        <!-- Zone tooltip -->
+        <div id="lobby-tooltip" style="position:absolute;z-index:30;pointer-events:none;display:none;background:rgba(6,3,15,0.95);border:1px solid rgba(124,58,237,0.5);border-radius:8px;padding:10px 16px;min-width:160px;backdrop-filter:blur(8px);">
+            <div id="lobby-tooltip-icon" style="font-size:1.6rem;margin-bottom:4px;"></div>
+            <div id="lobby-tooltip-name" style="font-size:.85rem;font-weight:900;color:#e8e0ff;letter-spacing:.08em;"></div>
+            <div id="lobby-tooltip-sub" style="font-size:.7rem;color:#9d8ec4;margin-top:2px;"></div>
+            <div style="font-size:.65rem;color:rgba(124,58,237,0.7);margin-top:6px;letter-spacing:.06em;">PRESS E OR CLICK TO ENTER</div>
         </div>
 
-        <!-- Zone proximity hint -->
-        <div id="lobby-zone-hint" style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);z-index:10;font-size:13px;color:#c4b5fd;letter-spacing:.1em;background:rgba(14,8,36,0.85);border:1px solid rgba(124,58,237,0.5);padding:8px 24px;border-radius:8px;display:none;pointer-events:none;animation:lobby-pulse-hint .8s ease-in-out infinite alternate;">
-            ⚡ Walk into the portal to enter
+        <!-- Player list bar -->
+        <div style="position:absolute;bottom:0;left:0;right:0;z-index:20;padding:10px 28px 14px;background:linear-gradient(to top,rgba(4,2,10,0.95) 0%,transparent 100%);display:flex;align-items:center;gap:12px;pointer-events:none;">
+            <div style="font-size:9px;letter-spacing:3px;color:rgba(157,142,196,0.35);flex-shrink:0;">IN LOBBY</div>
+            <div id="lobby-player-list" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
         </div>
     </div>
+
+    <style>
+        @keyframes blink2 { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .lobby-player-pill { display:inline-flex;align-items:center;gap:5px;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.22);border-radius:20px;padding:3px 10px 3px 6px;font-size:10px;color:rgba(196,181,253,0.75);letter-spacing:.05em; }
+        .lobby-player-dot  { width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0; }
+    </style>
+
+    <script>
+    (function() {
+        const ZONES = [
+            { id:'missions',   label:'MISSIONS',    sub:'Random quests',         icon:'📋', color:'#2563eb', cx:.50, cy:.18, r:.082 },
+            { id:'bosses',     label:'BOSSES',      sub:'Fight JJK bosses',      icon:'👹', color:'#dc2626', cx:.78, cy:.30, r:.082 },
+            { id:'storyline',  label:'STORYLINE',   sub:'JJK story chapters',    icon:'📖', color:'#06b6d4', cx:.82, cy:.58, r:.072 },
+            { id:'market',     label:'MARKET',      sub:'Spend your coins',      icon:'🏪', color:'#f59e0b', cx:.68, cy:.80, r:.072 },
+            { id:'culling',    label:'CULLING',     sub:'Colony survival',       icon:'⚔️', color:'#10b981', cx:.38, cy:.85, r:.072 },
+            { id:'training',   label:'TRAINING',    sub:'Practice mode',         icon:'🥊', color:'#ec4899', cx:.18, cy:.72, r:.072 },
+            { id:'techniques', label:'TECHNIQUES',  sub:'Cursed technique tree', icon:'⚡', color:'#7c3aed', cx:.14, cy:.44, r:.082 },
+            { id:'rankings',   label:'RANKINGS',    sub:'Top hunters',           icon:'🏆', color:'#f59e0b', cx:.28, cy:.22, r:.068 },
+        ];
+        const FAKE_NAMES = ['Yuji_I','Gojo_Fan','SukunaMain','MahitoX','NanamiK','YutaO','MegumiF','NobaraK'];
+
+        let canvas, ctx, W, H, raf;
+        let player = { x:.5, y:.5, vx:0, vy:0 };
+        let keys = {}, nearZone = null, t = 0;
+        let particles = [];
+        let active = false;
+
+        function init() {
+            canvas = document.getElementById('lobby-map-canvas');
+            if (!canvas) return;
+            ctx = canvas.getContext('2d');
+            particles = Array.from({length:60}, () => ({
+                x:Math.random(), y:Math.random(),
+                vx:(Math.random()-.5)*.0003, vy:(Math.random()-.5)*.0003,
+                r:.5+Math.random()*1.5, a:.1+Math.random()*.4, phase:Math.random()*Math.PI*2,
+            }));
+            resize(); window.addEventListener('resize', resize);
+            document.addEventListener('keydown', onKey);
+            document.addEventListener('keyup', e => { keys[e.code]=false; });
+            canvas.addEventListener('click', onCanvasClick);
+            updatePlayerList();
+            clearInterval(window._lobbyCountInt);
+            window._lobbyCountInt = setInterval(updatePlayerList, 9000);
+            active = true;
+            cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(loop);
+        }
+
+        function stop() {
+            active = false;
+            cancelAnimationFrame(raf);
+            document.removeEventListener('keydown', onKey);
+            window.removeEventListener('resize', resize);
+        }
+
+        function resize() { W = canvas.width = canvas.offsetWidth||innerWidth; H = canvas.height = canvas.offsetHeight||innerHeight; }
+
+        function onKey(e) {
+            keys[e.code] = true;
+            if (e.code==='KeyE' && nearZone) enterZone(nearZone);
+        }
+
+        function onCanvasClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            const mx=(e.clientX-rect.left)/rect.width, my=(e.clientY-rect.top)/rect.height;
+            ZONES.forEach(z => {
+                const dx=mx-z.cx, dy=(my-z.cy)*(W/H);
+                if (Math.sqrt(dx*dx+dy*dy) < z.r*1.4) enterZone(z);
+            });
+        }
+
+        function loop(ts) {
+            if (!active) return;
+            t = ts; update(); draw();
+            raf = requestAnimationFrame(loop);
+        }
+
+        function update() {
+            const spd=.0018;
+            if (keys['KeyW']||keys['ArrowUp'])    player.vy-=spd;
+            if (keys['KeyS']||keys['ArrowDown'])  player.vy+=spd;
+            if (keys['KeyA']||keys['ArrowLeft'])  player.vx-=spd;
+            if (keys['KeyD']||keys['ArrowRight']) player.vx+=spd;
+            player.vx*=.82; player.vy*=.82;
+            player.x=Math.max(.04,Math.min(.96,player.x+player.vx));
+            player.y=Math.max(.04,Math.min(.96,player.y+player.vy));
+
+            nearZone=null; let best=Infinity;
+            ZONES.forEach(z => {
+                const dx=player.x-z.cx, dy=(player.y-z.cy)*(W/H);
+                const d=Math.sqrt(dx*dx+dy*dy);
+                if (d<z.r*1.5&&d<best){best=d;nearZone=z;}
+            });
+
+            const tip=document.getElementById('lobby-tooltip');
+            if (nearZone&&tip) {
+                tip.style.display='block';
+                tip.style.left=Math.min(nearZone.cx*W+65,W-200)+'px';
+                tip.style.top=Math.max(nearZone.cy*H-85,10)+'px';
+                document.getElementById('lobby-tooltip-icon').textContent=nearZone.icon;
+                document.getElementById('lobby-tooltip-name').textContent=nearZone.label;
+                document.getElementById('lobby-tooltip-sub').textContent=nearZone.sub;
+            } else if(tip) tip.style.display='none';
+
+            particles.forEach(p=>{
+                p.x+=p.vx; p.y+=p.vy;
+                if(p.x<0)p.x=1; if(p.x>1)p.x=0;
+                if(p.y<0)p.y=1; if(p.y>1)p.y=0;
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0,0,W,H);
+            // bg
+            const bg=ctx.createRadialGradient(W*.5,H*.5,0,W*.5,H*.5,Math.max(W,H)*.75);
+            bg.addColorStop(0,'#0e0a1c'); bg.addColorStop(.5,'#080510'); bg.addColorStop(1,'#04020a');
+            ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+            // grid
+            ctx.strokeStyle='rgba(124,58,237,0.04)'; ctx.lineWidth=1;
+            for(let i=0;i<20;i++){
+                ctx.beginPath();ctx.moveTo(i/20*W,0);ctx.lineTo(i/20*W,H);ctx.stroke();
+                ctx.beginPath();ctx.moveTo(0,i/20*H);ctx.lineTo(W,i/20*H);ctx.stroke();
+            }
+            // rings
+            [.12,.22,.34,.46,.58].forEach((r,i)=>{
+                ctx.beginPath();ctx.arc(W*.5,H*.5,r*Math.min(W,H),0,Math.PI*2);
+                ctx.strokeStyle=`rgba(124,58,237,${.06-i*.01})`;ctx.lineWidth=1;ctx.stroke();
+            });
+            // spokes
+            ctx.setLineDash([4,8]);
+            ZONES.forEach(z=>{
+                ctx.beginPath();ctx.moveTo(W*.5,H*.5);ctx.lineTo(z.cx*W,z.cy*H);
+                ctx.strokeStyle=z.color+'22';ctx.lineWidth=1;ctx.stroke();
+            });
+            ctx.setLineDash([]);
+            // particles
+            particles.forEach(p=>{
+                const fa=p.a*(.5+.5*Math.sin(t*.001+p.phase));
+                ctx.beginPath();ctx.arc(p.x*W,p.y*H,p.r,0,Math.PI*2);
+                ctx.fillStyle=`rgba(196,181,253,${fa})`;ctx.fill();
+            });
+            // zones
+            ZONES.forEach(z=>{
+                const sx=z.cx*W,sy=z.cy*H,sr=z.r*Math.min(W,H);
+                const isNear=nearZone===z;
+                const pulse=.5+.5*Math.sin(t*.002+z.cx*10);
+                // glow
+                const glow=ctx.createRadialGradient(sx,sy,0,sx,sy,sr*1.7);
+                glow.addColorStop(0,z.color+(isNear?'30':'18'));glow.addColorStop(1,'rgba(0,0,0,0)');
+                ctx.fillStyle=glow;ctx.beginPath();ctx.arc(sx,sy,sr*1.7,0,Math.PI*2);ctx.fill();
+                // fill
+                const fill=ctx.createRadialGradient(sx,sy,0,sx,sy,sr);
+                fill.addColorStop(0,z.color+(isNear?'55':'33'));fill.addColorStop(.7,z.color+'18');fill.addColorStop(1,'rgba(0,0,0,0)');
+                ctx.fillStyle=fill;ctx.beginPath();ctx.arc(sx,sy,sr,0,Math.PI*2);ctx.fill();
+                // border
+                ctx.beginPath();ctx.arc(sx,sy,sr,0,Math.PI*2);
+                ctx.strokeStyle=z.color+(isNear?'cc':'66');ctx.lineWidth=isNear?2.5:1.5;ctx.stroke();
+                // inner ring
+                ctx.beginPath();ctx.arc(sx,sy,sr*.6+pulse*4,0,Math.PI*2);
+                ctx.strokeStyle=z.color+'44';ctx.lineWidth=1;ctx.stroke();
+                // icon
+                ctx.font=`${sr*.55}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+                ctx.fillText(z.icon,sx,sy-sr*.08);
+                // label
+                ctx.font=`700 ${Math.max(9,sr*.22)}px 'Segoe UI',sans-serif`;
+                ctx.fillStyle=isNear?'#fff':'rgba(196,181,253,0.75)';
+                ctx.fillText(z.label,sx,sy+sr*.65);
+            });
+            // center node
+            const cx=W*.5,cy=H*.5,cr=.055*Math.min(W,H);
+            const cg=ctx.createRadialGradient(cx,cy,0,cx,cy,cr*1.5);
+            cg.addColorStop(0,'rgba(124,58,237,0.4)');cg.addColorStop(1,'rgba(0,0,0,0)');
+            ctx.fillStyle=cg;ctx.beginPath();ctx.arc(cx,cy,cr*1.5,0,Math.PI*2);ctx.fill();
+            ctx.beginPath();ctx.arc(cx,cy,cr,0,Math.PI*2);
+            ctx.fillStyle='rgba(14,8,36,0.92)';ctx.fill();
+            ctx.strokeStyle='rgba(124,58,237,0.6)';ctx.lineWidth=1.5;ctx.stroke();
+            ctx.font=`${cr*.7}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+            ctx.fillStyle='rgba(196,181,253,0.8)';ctx.fillText('呪',cx,cy);
+            // player dot
+            const px=player.x*W,py=player.y*H;
+            const pg=ctx.createRadialGradient(px,py,0,px,py,20);
+            pg.addColorStop(0,'rgba(124,58,237,0.5)');pg.addColorStop(1,'rgba(0,0,0,0)');
+            ctx.fillStyle=pg;ctx.beginPath();ctx.arc(px,py,20,0,Math.PI*2);ctx.fill();
+            ctx.beginPath();ctx.arc(px,py,7,0,Math.PI*2);
+            ctx.fillStyle='#c4b5fd';ctx.fill();
+            ctx.strokeStyle='#7c3aed';ctx.lineWidth=2;ctx.stroke();
+            ctx.font='700 10px Segoe UI';ctx.textAlign='center';ctx.textBaseline='bottom';
+            ctx.fillStyle='rgba(196,181,253,0.8)';ctx.fillText('YOU',px,py-11);
+        }
+
+        function enterZone(z) {
+            if(typeof G==='undefined') return;
+            if(z.id==='techniques') { G.showScreen('s-customize'); return; }
+            if(z.id==='market')     { G.showScreen('s-shop');      return; }
+            if(z.id==='storyline')  { G.showScreen('s-preplay');   return; }
+            if(window._lobbyOpenZone) window._lobbyOpenZone(z.id);
+        }
+
+        function updatePlayerList() {
+            const c=document.getElementById('lobby-player-count');
+            const l=document.getElementById('lobby-player-list');
+            const n=3+Math.floor(Math.random()*9);
+            if(c) c.textContent=n+' ONLINE';
+            if(l) l.innerHTML=FAKE_NAMES.slice(0,Math.min(n,6)).map(name=>
+                `<div class="lobby-player-pill"><div class="lobby-player-dot"></div>${name}</div>`
+            ).join('');
+        }
+
+        // Patch G.showScreen to start/stop lobby
+        function patchG() {
+            if(!window.G||!window.G.showScreen||window.G._lobbyPatched) return;
+            window.G._lobbyPatched = true;
+            const orig = window.G.showScreen.bind(window.G);
+            window.G.showScreen = function(id) {
+                orig(id);
+                if(id==='s-spawn') setTimeout(init, 60);
+                else stop();
+            };
+        }
+        patchG(); setTimeout(patchG,500); setTimeout(patchG,1500);
+        if(document.getElementById('s-spawn')&&document.getElementById('s-spawn').classList.contains('active')) setTimeout(init,100);
+    })();
+    </script>
 
     <!-- CUSTOMIZE SCREEN -->
-    <div id="s-customize" class="screen imgscreen">
-        <div class="imgscreen-bg">
-            <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;inset:0;width:100%;height:100%" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
-                <defs>
-                    <linearGradient id="cust-sky" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stop-color="#0c0818"/>
-                        <stop offset="50%" stop-color="#0a0614"/>
-                        <stop offset="100%" stop-color="#060410"/>
-                    </linearGradient>
-                    <radialGradient id="cust-aura" cx="50%" cy="45%" r="45%">
-                        <stop offset="0%" stop-color="rgba(130,60,220,0.18)"/>
-                        <stop offset="55%" stop-color="rgba(80,20,160,0.08)"/>
-                        <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
-                    </radialGradient>
-                </defs>
-                <rect width="1920" height="1080" fill="url(#cust-sky)"/>
-                <ellipse cx="960" cy="490" rx="760" ry="500" fill="url(#cust-aura)"/>
-                <rect x="0" y="820" width="1920" height="260" fill="rgba(5,3,10,0.92)"/>
-            </svg>
-            <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,transparent 25%,rgba(4,2,12,0.78) 100%);pointer-events:none"></div>
+    <!-- ══════════════════════════════════════════════════════════
+         CUSTOMIZE SCREEN — JJK Infinite Innate Techniques style
+         Left: large character avatar display
+         Right: technique list as selectable cards
+    ═══════════════════════════════════════════════════════════ -->
+    <div id="s-customize" class="screen" style="overflow:hidden;padding:0;background:#06030f;align-items:stretch;justify-content:stretch;">
+
+        <!-- Dark atmospheric background -->
+        <div style="position:absolute;inset:0;z-index:0;pointer-events:none;">
+            <div style="position:absolute;inset:0;background:linear-gradient(160deg,#0a0618 0%,#06030f 50%,#0a0618 100%);"></div>
+            <!-- Left character glow -->
+            <div style="position:absolute;left:-5%;top:0;bottom:0;width:55%;background:radial-gradient(ellipse at 35% 55%,rgba(124,58,237,0.18) 0%,rgba(37,99,235,0.08) 40%,transparent 70%);"></div>
+            <!-- Ground line -->
+            <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(124,58,237,0.4),transparent);"></div>
+            <!-- Vertical divider -->
+            <div style="position:absolute;top:0;bottom:0;left:42%;width:1px;background:linear-gradient(180deg,transparent,rgba(124,58,237,0.25) 20%,rgba(124,58,237,0.25) 80%,transparent);"></div>
         </div>
 
-        <!-- Header -->
-        <div style="position:relative;z-index:2;width:100%;display:flex;align-items:center;justify-content:space-between;padding:18px 28px 0;">
-            <button class="imgscreen-back" onclick="G.showScreen('s-spawn')" style="position:static">&#8592; BACK</button>
-            <div style="font-size:1.4rem;font-weight:900;color:#c4b5fd;letter-spacing:.12em;">⚡ CURSED TECHNIQUES</div>
-            <div style="font-size:13px;color:#9d8ec4">💰 <span id="cust-coins-val">0</span></div>
+        <!-- Top bar -->
+        <div style="position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:16px 28px;background:linear-gradient(180deg,rgba(6,3,15,0.95) 0%,transparent 100%);">
+            <button onclick="G.showScreen('s-spawn')" style="background:none;border:1px solid rgba(196,181,253,0.2);color:rgba(196,181,253,0.7);padding:6px 16px;border-radius:3px;cursor:pointer;font-size:11px;letter-spacing:3px;font-family:inherit;transition:all .15s;" onmouseover="this.style.borderColor='rgba(196,181,253,0.6)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(196,181,253,0.2)';this.style.color='rgba(196,181,253,0.7)'">&#8592; BACK</button>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+                <div style="font-size:10px;letter-spacing:5px;color:rgba(196,181,253,0.4);text-transform:uppercase;">Cursed Techniques</div>
+                <div style="font-size:18px;font-weight:900;color:#c4b5fd;letter-spacing:.15em;">INNATE TECHNIQUES</div>
+            </div>
+            <div style="font-size:13px;color:#ffd700;font-weight:700;letter-spacing:.05em;">💰 <span id="cust-coins-val">0</span></div>
         </div>
 
-        <!-- Main layout -->
-        <div style="position:relative;z-index:2;display:flex;gap:20px;padding:16px 28px;width:100%;max-width:1200px;margin:0 auto;overflow-y:auto;max-height:calc(100vh - 80px);">
+        <!-- Main 2-column layout -->
+        <div style="position:absolute;inset:0;z-index:5;display:flex;padding-top:72px;">
 
-            <!-- LEFT: Avatar + Equipped + Spin -->
-            <div style="display:flex;flex-direction:column;gap:14px;width:280px;flex-shrink:0;">
+            <!-- ── LEFT: Character avatar display ── -->
+            <div style="width:42%;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:40px;overflow:hidden;">
 
-                <!-- Avatar card -->
-                <div style="background:rgba(14,8,36,0.85);border:1px solid rgba(124,58,237,0.3);border-radius:14px;padding:18px;text-align:center;">
-                    <div id="cust-avatar-icon" style="font-size:2.5rem;margin-bottom:6px">🪖</div>
-                    <div id="cust-avatar-name" style="font-size:1rem;font-weight:900;color:#e8e0ff;letter-spacing:.1em">SOLDIER</div>
-                    <div id="cust-avatar-desc" style="font-size:.8rem;color:#9d8ec4;margin:4px 0 10px"></div>
-                    <div style="display:flex;justify-content:space-around;font-size:.78rem;color:#9d8ec4;">
-                        <div>HP <b id="cust-av-hp" style="color:#e8e0ff">100</b></div>
-                        <div>SPD <b id="cust-av-spd" style="color:#e8e0ff">1.0×</b></div>
-                        <div>DMG <b id="cust-av-dmg" style="color:#e8e0ff">1.0×</b></div>
-                    </div>
+                <!-- Character avatar — large centered display -->
+                <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex:1;width:100%;padding-bottom:20px;">
+                    <!-- Aura ring behind avatar -->
+                    <div id="cust-aura-ring" style="position:absolute;bottom:60px;left:50%;transform:translateX(-50%);width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(124,58,237,0.22) 0%,rgba(124,58,237,0.08) 50%,transparent 70%);animation:custAuraPulse 3s ease-in-out infinite;"></div>
+                    <!-- Ground shadow -->
+                    <div style="position:absolute;bottom:52px;left:50%;transform:translateX(-50%);width:200px;height:18px;background:radial-gradient(ellipse,rgba(124,58,237,0.35) 0%,transparent 70%);border-radius:50%;"></div>
+                    <!-- Avatar emoji — large, represents the actual character -->
+                    <div id="cust-avatar-icon" style="font-size:9rem;line-height:1;position:relative;z-index:2;filter:drop-shadow(0 0 30px rgba(124,58,237,0.6)) drop-shadow(0 0 60px rgba(124,58,237,0.3));margin-bottom:8px;">🪖</div>
                 </div>
 
-                <!-- Equipped technique slot -->
-                <div style="background:rgba(14,8,36,0.85);border:1px solid rgba(124,58,237,0.3);border-radius:14px;padding:16px;">
-                    <div style="font-size:.7rem;color:#9d8ec4;letter-spacing:.12em;margin-bottom:10px;">EQUIPPED TECHNIQUE</div>
-                    <div id="equipped-slot">
-                        <div id="equipped-empty" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 0;color:#9d8ec4;font-size:.82rem;">
-                            <span style="font-size:1.8rem;opacity:.4">⚡</span>
-                            No technique equipped
+                <!-- Character name + stats bar at bottom -->
+                <div style="width:85%;background:rgba(6,3,15,0.85);border:1px solid rgba(124,58,237,0.3);border-radius:8px;padding:14px 18px;backdrop-filter:blur(8px);">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                        <div>
+                            <div id="cust-avatar-name" style="font-size:1.1rem;font-weight:900;color:#e8e0ff;letter-spacing:.12em;">SOLDIER</div>
+                            <div id="cust-avatar-desc" style="font-size:.72rem;color:#9d8ec4;margin-top:2px;letter-spacing:.05em;"></div>
                         </div>
-                        <div id="equipped-tech" style="display:none;gap:10px;align-items:flex-start;">
-                            <div id="eq-tier-badge" style="font-size:1.8rem;flex-shrink:0">⚡</div>
-                            <div style="flex:1;min-width:0;">
-                                <div id="eq-tier-label" style="font-size:.65rem;font-weight:700;letter-spacing:.1em;margin-bottom:2px;"></div>
-                                <div id="eq-tech-name" style="font-size:.9rem;font-weight:800;color:#e8e0ff;margin-bottom:2px;"></div>
-                                <div id="eq-tech-sorcerer" style="font-size:.72rem;color:#9d8ec4;margin-bottom:4px;"></div>
-                                <div id="eq-tech-desc" style="font-size:.72rem;color:#c4b5fd;line-height:1.4;margin-bottom:4px;"></div>
-                                <div id="eq-tech-stat" style="font-size:.7rem;color:#44ff88;"></div>
+                        <div id="equipped-tech-badge" style="font-size:1.6rem;opacity:0.9;"></div>
+                    </div>
+                    <div style="display:flex;gap:16px;">
+                        <div style="flex:1;">
+                            <div style="font-size:.6rem;color:#9d8ec4;letter-spacing:.1em;margin-bottom:3px;">HP</div>
+                            <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;">
+                                <div id="cust-hp-bar" style="height:100%;background:linear-gradient(90deg,#22c55e,#16a34a);border-radius:2px;transition:width .4s;width:100%;"></div>
                             </div>
+                            <div id="cust-av-hp" style="font-size:.72rem;color:#e8e0ff;margin-top:2px;font-weight:700;">100</div>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-size:.6rem;color:#9d8ec4;letter-spacing:.1em;margin-bottom:3px;">SPEED</div>
+                            <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;">
+                                <div id="cust-spd-bar" style="height:100%;background:linear-gradient(90deg,#06b6d4,#0284c7);border-radius:2px;transition:width .4s;width:70%;"></div>
+                            </div>
+                            <div id="cust-av-spd" style="font-size:.72rem;color:#e8e0ff;margin-top:2px;font-weight:700;">1.0×</div>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-size:.6rem;color:#9d8ec4;letter-spacing:.1em;margin-bottom:3px;">DAMAGE</div>
+                            <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;">
+                                <div id="cust-dmg-bar" style="height:100%;background:linear-gradient(90deg,#f59e0b,#d97706);border-radius:2px;transition:width .4s;width:70%;"></div>
+                            </div>
+                            <div id="cust-av-dmg" style="font-size:.72rem;color:#e8e0ff;margin-top:2px;font-weight:700;">1.0×</div>
                         </div>
                     </div>
-                    <button onclick="G.confirmTechniques && G.confirmTechniques()" style="width:100%;margin-top:12px;background:linear-gradient(135deg,#7c3aed,#2563eb);border:none;color:#fff;padding:8px;border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:700;letter-spacing:.08em;">✔ CONFIRM</button>
                 </div>
 
-                <!-- Spin -->
-                <div style="background:rgba(14,8,36,0.85);border:1px solid rgba(124,58,237,0.3);border-radius:14px;padding:16px;text-align:center;">
-                    <div style="font-size:.7rem;color:#9d8ec4;letter-spacing:.12em;margin-bottom:8px;">TECHNIQUE GACHA</div>
-                    <div style="font-size:.8rem;color:#9d8ec4;margin-bottom:10px;">Spins remaining: <b id="spin-count-val" class="spin-counter-val" style="color:#c4b5fd">10</b></div>
-                    <button id="spin-btn" onclick="G.spinTechnique && G.spinTechnique()" style="width:100%;background:linear-gradient(135deg,#7c3aed,#2563eb);border:none;color:#fff;padding:10px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:700;">🎲 SPIN FOR TECHNIQUE</button>
-                    <div style="font-size:.68rem;color:#9d8ec4;margin-top:8px;line-height:1.4;">Earn spins by completing missions and defeating bosses</div>
+                <!-- Spin button -->
+                <div style="width:85%;margin-top:10px;display:flex;gap:8px;align-items:center;">
+                    <button id="spin-btn" onclick="G.spinTechnique && G.spinTechnique()" style="flex:1;background:linear-gradient(135deg,#7c3aed,#2563eb);border:none;color:#fff;padding:10px;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:700;letter-spacing:.06em;font-family:inherit;">🎲 SPIN (<span id="spin-count-val" class="spin-counter-val">10</span>)</button>
+                    <button onclick="G.confirmTechniques && G.confirmTechniques()" style="background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.4);color:#c4b5fd;padding:10px 14px;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:700;font-family:inherit;">✔ EQUIP</button>
                 </div>
             </div>
 
-            <!-- RIGHT: Technique collection + Mastery -->
-            <div style="flex:1;display:flex;flex-direction:column;gap:14px;min-width:0;">
+            <!-- ── RIGHT: Technique list ── -->
+            <div style="flex:1;display:flex;flex-direction:column;padding:0 24px 24px 28px;overflow:hidden;">
 
-                <!-- Mastery section — shows WDEFS techniques with mastery bars -->
-                <div style="background:rgba(14,8,36,0.85);border:1px solid rgba(124,58,237,0.3);border-radius:14px;padding:16px;">
-                    <div style="font-size:.7rem;color:#9d8ec4;letter-spacing:.12em;margin-bottom:12px;">⚡ TECHNIQUE MASTERY</div>
-                    <div id="mastery-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;"></div>
+                <!-- Equipped technique banner -->
+                <div id="equipped-slot" style="margin-bottom:14px;padding:12px 16px;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);border-radius:8px;min-height:56px;">
+                    <div id="equipped-empty" style="display:flex;align-items:center;gap:8px;color:#9d8ec4;font-size:.82rem;">
+                        <span style="font-size:1.4rem;opacity:.4;">⚡</span> No technique equipped
+                    </div>
+                    <div id="equipped-tech" style="display:none;gap:12px;align-items:center;">
+                        <div id="eq-tier-badge" style="font-size:1.8rem;flex-shrink:0;">⚡</div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+                                <div id="eq-tech-name" style="font-size:.95rem;font-weight:900;color:#e8e0ff;"></div>
+                                <div id="eq-tier-label" style="font-size:.6rem;font-weight:700;letter-spacing:.1em;padding:1px 6px;border-radius:3px;background:rgba(124,58,237,.2);"></div>
+                            </div>
+                            <div id="eq-tech-sorcerer" style="font-size:.7rem;color:#9d8ec4;"></div>
+                            <div id="eq-tech-desc" style="font-size:.7rem;color:#c4b5fd;line-height:1.4;margin-top:2px;"></div>
+                            <div id="eq-tech-stat" style="font-size:.68rem;color:#44ff88;margin-top:2px;"></div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Collection grid -->
-                <div style="background:rgba(14,8,36,0.85);border:1px solid rgba(124,58,237,0.3);border-radius:14px;padding:16px;">
-                    <div style="font-size:.7rem;color:#9d8ec4;letter-spacing:.12em;margin-bottom:12px;">📚 TECHNIQUE COLLECTION</div>
-                    <div id="tech-collection" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;"></div>
+                <!-- Tabs -->
+                <div style="display:flex;gap:4px;margin-bottom:12px;">
+                    <button id="cust-tab-collection" onclick="window._custTab('collection')" style="flex:1;padding:7px;background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.5);color:#c4b5fd;border-radius:4px;cursor:pointer;font-size:.72rem;font-weight:700;letter-spacing:.08em;font-family:inherit;">📚 COLLECTION</button>
+                    <button id="cust-tab-mastery" onclick="window._custTab('mastery')" style="flex:1;padding:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#9d8ec4;border-radius:4px;cursor:pointer;font-size:.72rem;font-weight:700;letter-spacing:.08em;font-family:inherit;">⚡ MASTERY</button>
+                </div>
+
+                <!-- Scrollable content -->
+                <div style="flex:1;overflow-y:auto;padding-right:4px;">
+                    <div id="tech-collection" style="display:flex;flex-direction:column;gap:6px;"></div>
+                    <div id="mastery-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;display:none;"></div>
                 </div>
             </div>
         </div>
     </div>
+
+    <style>
+        @keyframes custAuraPulse {
+            0%,100% { opacity:.7; transform:translateX(-50%) scale(1); }
+            50%      { opacity:1;  transform:translateX(-50%) scale(1.06); }
+        }
+        /* Technique card in new style */
+        .tech-innate-card {
+            display:flex; align-items:center; gap:14px;
+            padding:12px 16px;
+            background:rgba(14,8,36,0.6);
+            border:1px solid rgba(124,58,237,0.15);
+            border-radius:8px;
+            cursor:pointer;
+            transition:background .15s, border-color .15s, transform .12s;
+            position:relative; overflow:hidden;
+        }
+        .tech-innate-card::before {
+            content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+            background:var(--tier-color,rgba(124,58,237,0.5));
+            border-radius:3px 0 0 3px;
+        }
+        .tech-innate-card:hover {
+            background:rgba(124,58,237,0.12);
+            border-color:rgba(124,58,237,0.4);
+            transform:translateX(3px);
+        }
+        .tech-innate-card.equipped {
+            background:rgba(124,58,237,0.18);
+            border-color:rgba(124,58,237,0.6);
+        }
+        .tech-innate-card.locked {
+            opacity:.45; cursor:default;
+        }
+        .tech-innate-card.locked:hover { transform:none; background:rgba(14,8,36,0.6); border-color:rgba(124,58,237,0.15); }
+    </style>
+
+    <script>
+    window._custTab = function(tab) {
+        const col = document.getElementById('tech-collection');
+        const mas = document.getElementById('mastery-grid');
+        const btnCol = document.getElementById('cust-tab-collection');
+        const btnMas = document.getElementById('cust-tab-mastery');
+        if (tab === 'collection') {
+            col.style.display = 'flex';
+            mas.style.display = 'none';
+            btnCol.style.background = 'rgba(124,58,237,.2)';
+            btnCol.style.borderColor = 'rgba(124,58,237,.5)';
+            btnCol.style.color = '#c4b5fd';
+            btnMas.style.background = 'rgba(255,255,255,.04)';
+            btnMas.style.borderColor = 'rgba(255,255,255,.1)';
+            btnMas.style.color = '#9d8ec4';
+        } else {
+            col.style.display = 'none';
+            mas.style.display = 'grid';
+            btnMas.style.background = 'rgba(124,58,237,.2)';
+            btnMas.style.borderColor = 'rgba(124,58,237,.5)';
+            btnMas.style.color = '#c4b5fd';
+            btnCol.style.background = 'rgba(255,255,255,.04)';
+            btnCol.style.borderColor = 'rgba(255,255,255,.1)';
+            btnCol.style.color = '#9d8ec4';
+        }
+    };
+    </script>
 
     <div id="s-preplay" class="screen">
         <div class="preplay-panel">
@@ -2406,8 +2726,7 @@
     <div id="scope-ov"></div>
     <div id="domain-ov"></div>
     <div id="notif"></div>
-    <div id="ptr-msg">CLICK TO CHANNEL CURSED ENERGY<br><small style="font-size:10px;color:#6644aa;letter-spacing:2px">ESC TO DISENGAGE</small>
-    </div>
+    <div id="ptr-msg" style="display:none"></div>
 
     <!-- Three.js r160: GLTF + RoomEnvironment + SkeletonUtils (same stack as three.js examples) -->
     <script type="importmap">

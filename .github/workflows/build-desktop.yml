@@ -1,0 +1,150 @@
+name: Build & Release Desktop App
+
+on:
+  push:
+    tags:
+      - 'v*'          # triggers on any tag like v1.0.8, v2.0.0, etc.
+  workflow_dispatch:  # also allows manual trigger from GitHub Actions UI
+
+permissions:
+  contents: write   # needed to create GitHub Releases and upload assets
+
+jobs:
+  # ── Windows ──────────────────────────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: electron/package.json
+
+      - name: Install dependencies
+        working-directory: electron
+        run: npm ci
+
+      - name: Build Windows installer
+        working-directory: electron
+        run: npm run build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist-electron/*.exe
+          retention-days: 7
+
+  # ── macOS ─────────────────────────────────────────────────────────────────────
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: electron/package.json
+
+      - name: Install dependencies
+        working-directory: electron
+        run: npm ci
+
+      - name: Build macOS DMG
+        working-directory: electron
+        run: npm run build:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-installer
+          path: dist-electron/*.dmg
+          retention-days: 7
+
+  # ── Linux ─────────────────────────────────────────────────────────────────────
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: electron/package.json
+
+      - name: Install dependencies
+        working-directory: electron
+        run: npm ci
+
+      - name: Build Linux AppImage
+        working-directory: electron
+        run: npm run build:linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-installer
+          path: dist-electron/*.AppImage
+          retention-days: 7
+
+  # ── Publish GitHub Release ────────────────────────────────────────────────────
+  release:
+    needs: [build-windows, build-mac, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Get tag name
+        id: tag
+        run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release and upload installers
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.TAG }}
+          name: "Jujutsu Hunters ${{ steps.tag.outputs.TAG }}"
+          body: |
+            ## Jujutsu Hunters ${{ steps.tag.outputs.TAG }}
+
+            Download the installer for your operating system below.
+
+            | Platform | File |
+            |----------|------|
+            | Windows  | `JujutsuHunters-Setup-*-win.exe` |
+            | macOS    | `JujutsuHunters-*-mac.dmg` |
+            | Linux    | `JujutsuHunters-*-linux.AppImage` |
+
+            ### What's new
+            - See commit history for changes in this release.
+
+            ### Install notes
+            - **Windows**: Run the `.exe` installer. Windows Defender may show a SmartScreen warning — click "More info → Run anyway".
+            - **macOS**: Open the `.dmg`, drag to Applications. If blocked by Gatekeeper: System Settings → Privacy & Security → Open Anyway.
+            - **Linux**: Make the `.AppImage` executable (`chmod +x *.AppImage`) then run it.
+          files: |
+            artifacts/windows-installer/*.exe
+            artifacts/mac-installer/*.dmg
+            artifacts/linux-installer/*.AppImage
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

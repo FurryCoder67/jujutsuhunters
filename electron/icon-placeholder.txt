@@ -1,0 +1,11 @@
+Place your icon files here:
+  icon.png   — 512x512 PNG  (Linux + fallback)
+  icon.ico   — Windows ICO  (multi-size: 16,32,48,256)
+  icon.icns  — macOS ICNS
+
+You can convert a PNG to ICO/ICNS using:
+  https://www.icoconverter.com/
+  https://cloudconvert.com/png-to-icns
+
+Or generate all three from one PNG with electron-icon-builder:
+  npx electron-icon-builder --input=icon.png --output=./

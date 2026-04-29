@@ -1,0 +1,67 @@
+{
+  "name": "jujutsu-hunters",
+  "version": "1.0.8",
+  "description": "Jujutsu Hunters — Desktop App",
+  "main": "main.js",
+  "author": "FurryCoder67",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build:win":   "electron-builder --win --x64",
+    "build:mac":   "electron-builder --mac --x64 --arm64",
+    "build:linux": "electron-builder --linux --x64"
+  },
+  "devDependencies": {
+    "electron": "29.4.6",
+    "electron-builder": "24.13.3"
+  },
+  "build": {
+    "appId": "com.furryCoder67.jujutsuhunters",
+    "productName": "Jujutsu Hunters",
+    "copyright": "Fan-made. Not affiliated with Gege Akutami or MAPPA.",
+    "directories": {
+      "output": "../dist-electron"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "icon.png",
+      "icon.ico",
+      "icon.icns"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "icon.ico",
+      "artifactName": "JujutsuHunters-Setup-${version}-win.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "icon.ico",
+      "uninstallerIcon": "icon.ico",
+      "installerHeaderIcon": "icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Jujutsu Hunters"
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ],
+      "icon": "icon.icns",
+      "artifactName": "JujutsuHunters-${version}-mac.dmg",
+      "category": "public.app-category.games"
+    },
+    "linux": {
+      "target": [
+        { "target": "AppImage", "arch": ["x64"] }
+      ],
+      "icon": "icon.png",
+      "artifactName": "JujutsuHunters-${version}-linux.AppImage",
+      "category": "Game"
+    }
+  }
+}

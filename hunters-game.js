@@ -3703,6 +3703,17 @@ const GAME_MODES = [
                 document.getElementById('cust-av-spd').textContent = cdef.speed.toFixed(1) + '\u00d7';
                 document.getElementById('cust-av-dmg').textContent = cdef.dmgMult.toFixed(1) + '\u00d7';
 
+                // Stat bars
+                const hpPct  = Math.round((cdef.hp / 200) * 100);
+                const spdPct = Math.round((cdef.speed / 2.0) * 100);
+                const dmgPct = Math.round((cdef.dmgMult / 2.0) * 100);
+                const hpBar  = document.getElementById('cust-hp-bar');
+                const spdBar = document.getElementById('cust-spd-bar');
+                const dmgBar = document.getElementById('cust-dmg-bar');
+                if (hpBar)  hpBar.style.width  = hpPct  + '%';
+                if (spdBar) spdBar.style.width = spdPct + '%';
+                if (dmgBar) dmgBar.style.width = dmgPct + '%';
+
                 // Spin counter
                 const spinVal = document.getElementById('spin-count-val');
                 spinVal.textContent = save.spinCount;
@@ -3712,8 +3723,8 @@ const GAME_MODES = [
                 // Spin button state
                 const spinBtn = document.getElementById('spin-btn');
                 spinBtn.disabled = save.spinCount <= 0;
-                spinBtn.textContent = save.spinCount > 0
-                    ? '\ud83c\udfb2 SPIN FOR TECHNIQUE (' + save.spinCount + ' left)'
+                spinBtn.innerHTML = save.spinCount > 0
+                    ? '\ud83c\udfb2 SPIN (<span id="spin-count-val" class="spin-counter-val">' + save.spinCount + '</span>)'
                     : '\ud83c\udfb2 NO SPINS LEFT';
 
                 // Equipped technique
@@ -3722,6 +3733,9 @@ const GAME_MODES = [
                 document.getElementById('equipped-tech').style.display  = tech ? 'flex' : 'none';
                 const slot = document.getElementById('equipped-slot');
                 slot.classList.toggle('has-technique', !!tech);
+                // Badge on avatar
+                const badge2 = document.getElementById('equipped-tech-badge');
+                if (badge2) badge2.textContent = tech ? tech.icon : '';
                 if (tech) {
                     const meta = this._TIER_META[tech.tier];
                     const badge = document.getElementById('eq-tier-badge');
@@ -3735,12 +3749,11 @@ const GAME_MODES = [
                     document.getElementById('eq-tech-stat').textContent = tech.stat;
                 }
 
-                // Mastery grid — shows all WDEFS techniques with progress bars
+                // Mastery grid
                 const masteryGrid = document.getElementById('mastery-grid');
                 if (masteryGrid) {
                     masteryGrid.innerHTML = '';
                     if (!save.techMastery) save.techMastery = {};
-                    // Group by techFamily
                     const families = {};
                     WDEFS.forEach(w => {
                         const fam = w.techFamily || w.cat;
@@ -3778,24 +3791,31 @@ const GAME_MODES = [
                     });
                 }
 
-                // Collection grid
+                // Collection — new innate-technique card style
                 const grid = document.getElementById('tech-collection');
                 grid.innerHTML = '';
                 this._TECH_POOL.forEach(t => {
                     const owned = (save.ownedTechs || []).includes(t.key);
                     const equipped = save.technique === t.key;
                     const meta = this._TIER_META[t.tier];
+                    const tierColorMap = { common:'rgba(170,170,170,', rare:'rgba(68,153,255,', epic:'rgba(170,68,255,', legendary:'rgba(255,153,0,' };
+                    const tc = tierColorMap[t.tier] || 'rgba(124,58,237,';
+
                     const card = document.createElement('div');
-                    card.className = 'tech-collect-card' + (owned ? ' owned' : ' locked');
-                    card.style.borderColor = owned ? meta.color.replace(')', ',0.4)').replace('rgb', 'rgba') : '';
+                    card.className = 'tech-innate-card' + (equipped ? ' equipped' : '') + (!owned ? ' locked' : '');
+                    card.style.setProperty('--tier-color', tc + '0.7)');
                     card.innerHTML =
-                        '<div class="tech-collect-tier">' + (owned ? t.icon : '\ud83d\udd12') + '</div>' +
-                        '<div class="tech-collect-info">' +
-                            '<div class="tech-collect-name" style="color:' + (equipped ? '#ffffff' : owned ? meta.color : '') + '">' +
-                                (owned ? t.name : '???') +
+                        '<div style="font-size:2rem;flex-shrink:0;width:44px;text-align:center;">' + (owned ? t.icon : '🔒') + '</div>' +
+                        '<div style="flex:1;min-width:0;">' +
+                            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">' +
+                                '<span style="font-size:.88rem;font-weight:800;color:' + (owned ? '#e8e0ff' : '#666') + ';">' + (owned ? t.name : '???') + '</span>' +
+                                '<span style="font-size:.58rem;font-weight:700;letter-spacing:.08em;padding:1px 5px;border-radius:3px;background:' + tc + '0.15);color:' + tc + '0.9);border:1px solid ' + tc + '0.3);">' + meta.label + '</span>' +
+                                (equipped ? '<span style="font-size:.58rem;color:#44ff88;font-weight:700;letter-spacing:.06em;">EQUIPPED</span>' : '') +
                             '</div>' +
-                            '<div class="tech-collect-sorcerer">' + (owned ? t.sorcerer : meta.label) + '</div>' +
-                        '</div>';
+                            '<div style="font-size:.7rem;color:#9d8ec4;">' + (owned ? t.sorcerer : meta.label) + '</div>' +
+                            (owned ? '<div style="font-size:.68rem;color:#c4b5fd;margin-top:2px;line-height:1.3;">' + t.desc + '</div>' : '') +
+                        '</div>' +
+                        (owned && !equipped ? '<div style="font-size:.65rem;color:rgba(124,58,237,0.7);font-weight:700;flex-shrink:0;">EQUIP</div>' : '');
                     if (owned && !equipped) {
                         card.style.cursor = 'pointer';
                         card.onclick = () => { save.technique = t.key; writeSave(); this.buildCustomizeUI(); this.showNotif('Equipped: ' + t.name, 1500); };
@@ -4041,10 +4061,8 @@ const GAME_MODES = [
                 document.getElementById('hud').classList.add('active');
                 this.state = 'playing';
 
-                // Request pointer lock
-                renderer.domElement.requestPointerLock();
-                document.getElementById('ptr-msg').style.display = 'block';
-                setTimeout(() => document.getElementById('ptr-msg').style.display = 'none', 2500);
+                // 3rd-person — no pointer lock needed
+                document.getElementById('ptr-msg').style.display = 'none';
 
                 this.updateHUD();
                 save.matches++; writeSave();
@@ -4172,7 +4190,6 @@ const GAME_MODES = [
                 this.bots = [];
                 this.powerups.forEach(p => { if (p.mesh) scene.remove(p.mesh); });
                 this.powerups = [];
-                document.exitPointerLock();
                 this.locked = false;
                 document.getElementById('wave-d').style.display = 'none';
                 document.getElementById('timer-d').style.display = 'none';
@@ -4315,7 +4332,7 @@ const GAME_MODES = [
                 document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
                 document.getElementById('hud').classList.add('active');
                 this.state = 'playing';
-                renderer.domElement.requestPointerLock();
+                // 3rd-person — no pointer lock
             },
 
             // ---- COMBAT ----
@@ -4692,12 +4709,22 @@ const GAME_MODES = [
                 }
                 this._landBounce = lerp(this._landBounce || 0, this.onGround ? 0 : -.015, .08);
 
-                // Update camera
-                camera.position.set(this.playerPos.x, this.playerPos.y + this.EYE_HEIGHT + this._bobAmt + (this._landBounce || 0), this.playerPos.z);
+                // Update camera — 3rd person
+                const TPS_DIST = 4.5;   // distance behind player
+                const TPS_HEIGHT = 2.0; // height above player
+                const camTarget = new THREE.Vector3(
+                    this.playerPos.x,
+                    this.playerPos.y + 1.4,
+                    this.playerPos.z
+                );
+                const camOffset = new THREE.Vector3(
+                    Math.sin(this.playerYaw) * TPS_DIST,
+                    TPS_HEIGHT + this._bobAmt * 0.3,
+                    Math.cos(this.playerYaw) * TPS_DIST
+                );
+                camera.position.copy(camTarget).add(camOffset);
+                camera.lookAt(camTarget);
                 camera.rotation.order = 'YXZ';
-                camera.rotation.y = this.playerYaw;
-                camera.rotation.x = this.playerPitch;
-                camera.rotation.z = this._strafeTilt || 0;
 
                 // Update player model
                 if (this.playerChar) {
@@ -4708,8 +4735,7 @@ const GAME_MODES = [
                     const ratio = Math.min(1.0, moveSpeed / maxSpeed);
                     HuntersGL.updateBlending(this.playerChar, ratio);
                     this.playerChar.mixer.update(dt);
-                    // Hide if very close to camera to avoid clipping in FPS mode
-                    this.playerChar.root.visible = false; // Keep hidden for now in FPS, but exists for later
+                    this.playerChar.root.visible = true; // visible in 3rd person
                 }
 
                 // Weapon kick
@@ -4750,33 +4776,9 @@ const GAME_MODES = [
                     }
                 }
 
-                // Update weapon model (attached to camera)
+                // Update weapon model — in 3rd person, hide the floating FPS weapon
                 if (this.wepModel) {
-                    const w = this.weapons[this.wepIndex];
-                    const isMelee = w && w.cat === 'melee';
-                    const offset = new THREE.Vector3(.2, -.18, -.35);
-                    if (this.scopeMode) offset.set(0, -.1, -.3);
-                    const swayX = (this._strafeTilt || 0) * 2.2 + Math.sin((this._bobT || 0) * .5) * .015;
-                    const swayY = (this._bobAmt || 0) * 1.6 - (this._kick || 0) * .45;
-                    const swayZ = moving ? Math.cos(this._bobT || 0) * .02 : 0;
-                    offset.x += swayX;
-                    offset.y += swayY;
-                    offset.z += swayZ;
-                    this.wepModel.position.copy(camera.position).add(
-                        offset.clone().applyEuler(new THREE.Euler(camera.rotation.x, camera.rotation.y, 0, 'YXZ'))
-                    );
-                    this.wepModel.rotation.copy(camera.rotation);
-                    this.wepModel.rotateY(Math.PI);
-                    this.wepModel.rotation.z += (this._strafeTilt || 0) * 3;
-                    this.wepModel.rotation.y += Math.sin((this._bobT || 0) * .5) * .03;
-                    if (isMelee && this._swingAnim > 0) {
-                        this.wepModel.rotation.x += Math.sin(this._swingAnim * Math.PI / .2) * .8;
-                    }
-                    const animTime = performance.now() * .002;
-                    this.wepModel.traverse(o => {
-                        if (!o.isMesh) return;
-                        o.rotation.z += Math.sin(animTime + o.position.z * 4) * .002;
-                    });
+                    this.wepModel.visible = false;
                 }
 
                 // Auto fire
@@ -5066,7 +5068,6 @@ const GAME_MODES = [
                         if (e.code === 'Digit3' || e.code === 'Numpad3') this.switchWeapon(2);
                         if (e.code === 'Space' && this.onGround) { this.playerVel.y = this.JUMP_VEL; this.onGround = false; }
                         if (e.code === 'Escape') {
-                            document.exitPointerLock();
                             this.showScreen('s-pause');
                         }
                     }
@@ -5074,21 +5075,18 @@ const GAME_MODES = [
                 document.addEventListener('keyup', e => { this.keys[e.code] = false; });
 
                 document.addEventListener('mousedown', e => {
-                    if (this.state === 'playing' && this.locked) {
+                    if (this.state === 'playing') {
                         if (e.button === 0) {
                             this.mouseDown = true;
                             const w = this.weapons[this.wepIndex];
                             if (w && w.charge) {
-                                // Start charging
                                 this._isCharging = true;
                                 this._chargeStart = performance.now();
                             } else if (!w || !w.auto) {
                                 this.shoot();
                             }
                         }
-                        if (e.button === 2) {
-                            this.setScopeMode(true);
-                        }
+                        // button 2 handled by drag listener above
                     }
                 });
                 document.addEventListener('mouseup', e => {
@@ -5106,18 +5104,32 @@ const GAME_MODES = [
                                 this.shoot(mult);
                             }
                         }
-                    } else if (e.button === 2) {
-                        this.setScopeMode(false);
                     }
                 });
                 document.addEventListener('contextmenu', e => e.preventDefault());
 
+                // ── 3rd-person camera: right-click drag to rotate ──────────────
+                let _rmb = false, _lastMX = 0, _lastMY = 0;
+                document.addEventListener('mousedown', e => {
+                    if (this.state === 'playing' && e.button === 2) {
+                        _rmb = true;
+                        _lastMX = e.clientX;
+                        _lastMY = e.clientY;
+                    }
+                });
+                document.addEventListener('mouseup', e => {
+                    if (e.button === 2) _rmb = false;
+                });
                 document.addEventListener('mousemove', e => {
-                    if (this.state !== 'playing' || !this.locked) return;
-                    const sens = this.scopeMode ? .0005 : .002;
-                    this.playerYaw -= e.movementX * sens;
-                    this.playerPitch -= e.movementY * sens;
-                    this.playerPitch = Math.max(-Math.PI / 2.1, Math.min(Math.PI / 2.1, this.playerPitch));
+                    if (this.state !== 'playing' || !_rmb) return;
+                    const dx = e.clientX - _lastMX;
+                    const dy = e.clientY - _lastMY;
+                    _lastMX = e.clientX;
+                    _lastMY = e.clientY;
+                    const sens = 0.005;
+                    this.playerYaw -= dx * sens;
+                    this.playerPitch -= dy * sens;
+                    this.playerPitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, this.playerPitch));
                 });
 
                 document.addEventListener('wheel', e => {
@@ -5126,15 +5138,8 @@ const GAME_MODES = [
                     this.switchWeapon((this.wepIndex + dir + this.weapons.length) % this.weapons.length);
                 });
 
-                document.addEventListener('pointerlockchange', () => {
-                    this.locked = document.pointerLockElement === renderer.domElement;
-                    if (this.locked) { document.getElementById('ptr-msg').style.display = 'none'; }
-                    else if (this.state === 'playing') { document.getElementById('ptr-msg').style.display = 'block'; }
-                });
-
-                renderer.domElement.addEventListener('click', () => {
-                    if (this.state === 'playing' && !this.locked) renderer.domElement.requestPointerLock();
-                });
+                // 3rd-person: no pointer lock needed
+                renderer.domElement.style.cursor = 'default';
             },
 
             switchWeapon(idx) {

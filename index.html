@@ -2,10 +2,600 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="refresh" content="0; url=hunters.html" />
-  <title>HUNTERS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jujutsu Hunters — Free Browser Game</title>
+  <link rel="icon" href="./favicon.svg" />
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { background: #09090b; color: #e4e4e7; font-family: 'Inter', system-ui, sans-serif; overflow-x: hidden; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #09090b; }
+    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+
+    @keyframes fadeUp   { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeIn   { from{opacity:0} to{opacity:1} }
+    @keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:.5} }
+    @keyframes shimmer  {
+      0%   { background-position: -200% center; }
+      100% { background-position:  200% center; }
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0px); }
+      50%      { transform: translateY(-8px); }
+    }
+  </style>
 </head>
 <body>
-  <script>window.location.replace('hunters.html');</script>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+/* ─── data ──────────────────────────────────────────────────────────────── */
+const FEATURES = [
+  {
+    icon: '⚔️',
+    title: 'Third-Person Combat',
+    desc: 'Fight cursed spirits in fluid 3D combat. Right-click drag to orbit the camera, WASD to move. Every hit lands with weight.',
+  },
+  {
+    icon: '⚡',
+    title: 'Innate Techniques',
+    desc: 'Unlock and equip cursed techniques from the JJK universe — Limitless, Ten Shadows, Idle Transfiguration, and more. Each changes how you play.',
+  },
+  {
+    icon: '🗺️',
+    title: 'Multiplayer Lobby',
+    desc: 'Drop into a shared top-down lobby. Walk your character to any zone — Missions, Bosses, Market, Culling Colony — and jump in.',
+  },
+  {
+    icon: '👹',
+    title: 'Boss Hunts',
+    desc: 'Face off against Gojo, Sukuna, Mahito, Toji, and more. Each boss has unique abilities and difficulty scaling.',
+  },
+  {
+    icon: '📖',
+    title: 'JJK Storyline',
+    desc: 'Relive 5 chapters of the Jujutsu Kaisen saga — from Yuji\'s first mission to the Shibuya Incident.',
+  },
+  {
+    icon: '🏪',
+    title: 'Cursed Armory',
+    desc: 'Spend coins on weapons, characters, and skins. Earn through missions, boss kills, and the Culling Game colony.',
+  },
+];
+
+const MODES = [
+  { label: 'Elimination',   desc: 'Exorcise all cursed spirits',         color: '#ef4444' },
+  { label: 'Domain Siege',  desc: 'Survive 5 waves of curses',           color: '#8b5cf6' },
+  { label: 'Cursed Hunt',   desc: 'Most kills in 2 minutes',             color: '#f59e0b' },
+  { label: 'Culling Game',  desc: 'Colony domination — extreme mode',    color: '#10b981' },
+  { label: 'JJK Storyline', desc: 'Story-driven chapter missions',       color: '#06b6d4' },
+];
+
+const CHARS = [
+  { icon: '🪖', name: 'Soldier',   desc: 'Balanced — good at everything',   color: '#6366f1' },
+  { icon: '🏃', name: 'Scout',     desc: '+40% speed, lower HP',            color: '#06b6d4' },
+  { icon: '🛡️', name: 'Tank',      desc: '160 HP, slower movement',         color: '#10b981' },
+  { icon: '🎯', name: 'Marksman',  desc: '+40% damage, fragile',            color: '#f59e0b' },
+  { icon: '😤', name: 'Berserker', desc: 'Rage mode at low HP',             color: '#ef4444' },
+];
+
+/* ─── components ────────────────────────────────────────────────────────── */
+
+function Navbar() {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 40);
+    window.addEventListener('scroll', fn);
+    return () => window.removeEventListener('scroll', fn);
+  }, []);
+
+  return (
+    <nav style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '0 40px', height: '60px',
+      background: scrolled ? 'rgba(9,9,11,0.95)' : 'transparent',
+      borderBottom: scrolled ? '1px solid #27272a' : '1px solid transparent',
+      backdropFilter: scrolled ? 'blur(12px)' : 'none',
+      transition: 'all .3s',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <span style={{ fontSize: '20px' }}>⚡</span>
+        <span style={{ fontWeight: 700, fontSize: '15px', letterSpacing: '.04em', color: '#fafafa' }}>
+          Jujutsu Hunters
+        </span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+        {['Features', 'Modes', 'Characters', 'Download'].map(s => (
+          <a key={s} href={`#${s.toLowerCase()}`} style={{
+            fontSize: '13px', color: '#a1a1aa', textDecoration: 'none',
+            transition: 'color .15s',
+          }}
+          onMouseOver={e => e.target.style.color = '#fafafa'}
+          onMouseOut={e => e.target.style.color = '#a1a1aa'}
+          >{s}</a>
+        ))}
+        <a href="hunters.html" style={{
+          fontSize: '13px', fontWeight: 600, color: '#09090b',
+          background: '#fafafa', padding: '7px 18px', borderRadius: '6px',
+          textDecoration: 'none', transition: 'opacity .15s',
+        }}
+        onMouseOver={e => e.target.style.opacity = '.85'}
+        onMouseOut={e => e.target.style.opacity = '1'}
+        >Play Free →</a>
+      </div>
+    </nav>
+  );
+}
+
+function Hero() {
+  return (
+    <section style={{
+      minHeight: '100vh', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      padding: '120px 24px 80px', textAlign: 'center',
+      background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(124,58,237,0.12) 0%, transparent 70%)',
+      borderBottom: '1px solid #18181b',
+    }}>
+      <div style={{ animation: 'fadeUp .8s ease both' }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: '8px',
+          background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.3)',
+          borderRadius: '20px', padding: '5px 14px', marginBottom: '28px',
+          fontSize: '12px', color: '#a78bfa', letterSpacing: '.06em',
+        }}>
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', display: 'inline-block', animation: 'pulse 2s infinite' }} />
+          Free to play · No download required
+        </div>
+
+        <h1 style={{
+          fontSize: 'clamp(42px, 7vw, 88px)', fontWeight: 900,
+          lineHeight: 1.05, letterSpacing: '-.02em',
+          color: '#fafafa', marginBottom: '24px',
+        }}>
+          Jujutsu Kaisen<br />
+          <span style={{
+            background: 'linear-gradient(135deg, #a78bfa, #60a5fa, #a78bfa)',
+            backgroundSize: '200% auto',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            animation: 'shimmer 4s linear infinite',
+          }}>in your browser.</span>
+        </h1>
+
+        <p style={{
+          fontSize: 'clamp(16px, 2vw, 20px)', color: '#71717a',
+          maxWidth: '560px', margin: '0 auto 40px', lineHeight: 1.7,
+        }}>
+          A free multiplayer action game set in the JJK universe.
+          Fight cursed spirits, unlock innate techniques, and challenge iconic bosses —
+          no install needed.
+        </p>
+
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <a href="hunters.html" style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            background: '#7c3aed', color: '#fff', fontWeight: 700,
+            fontSize: '15px', padding: '14px 32px', borderRadius: '8px',
+            textDecoration: 'none', transition: 'background .15s, transform .15s',
+          }}
+          onMouseOver={e => { e.currentTarget.style.background='#6d28d9'; e.currentTarget.style.transform='translateY(-2px)'; }}
+          onMouseOut={e => { e.currentTarget.style.background='#7c3aed'; e.currentTarget.style.transform='translateY(0)'; }}
+          >
+            ⚡ Play in Browser
+          </a>
+          <a href="#download" style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            background: 'transparent', color: '#e4e4e7', fontWeight: 600,
+            fontSize: '15px', padding: '14px 32px', borderRadius: '8px',
+            textDecoration: 'none', border: '1px solid #3f3f46',
+            transition: 'border-color .15s, transform .15s',
+          }}
+          onMouseOver={e => { e.currentTarget.style.borderColor='#71717a'; e.currentTarget.style.transform='translateY(-2px)'; }}
+          onMouseOut={e => { e.currentTarget.style.borderColor='#3f3f46'; e.currentTarget.style.transform='translateY(0)'; }}
+          >
+            ↓ Download App
+          </a>
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div style={{
+        display: 'flex', gap: '48px', marginTop: '80px', flexWrap: 'wrap', justifyContent: 'center',
+        animation: 'fadeUp .8s .3s ease both', opacity: 0, animationFillMode: 'forwards',
+      }}>
+        {[['5', 'Game Modes'], ['9', 'Playable Bosses'], ['10+', 'Maps'], ['Free', 'Always']].map(([n, l]) => (
+          <div key={l} style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '28px', fontWeight: 900, color: '#fafafa', letterSpacing: '-.02em' }}>{n}</div>
+            <div style={{ fontSize: '12px', color: '#52525b', letterSpacing: '.06em', marginTop: '2px' }}>{l}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Features() {
+  return (
+    <section id="features" style={{ padding: '100px 24px', maxWidth: '1100px', margin: '0 auto' }}>
+      <SectionLabel>What's in the game</SectionLabel>
+      <h2 style={{ fontSize: 'clamp(28px,4vw,42px)', fontWeight: 800, color: '#fafafa', marginBottom: '16px', letterSpacing: '-.02em' }}>
+        Everything you'd expect.<br />Then some.
+      </h2>
+      <p style={{ color: '#71717a', fontSize: '16px', marginBottom: '56px', maxWidth: '480px', lineHeight: 1.7 }}>
+        Built from scratch in the browser. No plugins, no downloads — just open and play.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+        {FEATURES.map((f, i) => (
+          <FeatureCard key={i} {...f} delay={i * 60} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FeatureCard({ icon, title, desc, delay }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        background: hov ? '#18181b' : '#111113',
+        border: `1px solid ${hov ? '#3f3f46' : '#27272a'}`,
+        borderRadius: '12px', padding: '28px',
+        transition: 'background .2s, border-color .2s, transform .2s',
+        transform: hov ? 'translateY(-3px)' : 'none',
+        cursor: 'default',
+      }}
+    >
+      <div style={{ fontSize: '28px', marginBottom: '14px' }}>{icon}</div>
+      <div style={{ fontSize: '16px', fontWeight: 700, color: '#fafafa', marginBottom: '8px' }}>{title}</div>
+      <div style={{ fontSize: '14px', color: '#71717a', lineHeight: 1.7 }}>{desc}</div>
+    </div>
+  );
+}
+
+function Modes() {
+  const [active, setActive] = useState(0);
+  return (
+    <section id="modes" style={{ padding: '100px 24px', background: '#0c0c0e', borderTop: '1px solid #18181b', borderBottom: '1px solid #18181b' }}>
+      <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+        <SectionLabel>Game modes</SectionLabel>
+        <h2 style={{ fontSize: 'clamp(28px,4vw,42px)', fontWeight: 800, color: '#fafafa', marginBottom: '48px', letterSpacing: '-.02em' }}>
+          Five ways to fight.
+        </h2>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '32px' }}>
+          {MODES.map((m, i) => (
+            <button key={i} onClick={() => setActive(i)} style={{
+              padding: '8px 18px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+              fontSize: '13px', fontWeight: 600, fontFamily: 'inherit',
+              background: active === i ? MODES[i].color : '#18181b',
+              color: active === i ? '#fff' : '#71717a',
+              transition: 'all .15s',
+            }}>{m.label}</button>
+          ))}
+        </div>
+        <div style={{
+          background: '#111113', border: '1px solid #27272a', borderRadius: '12px',
+          padding: '32px', borderLeft: `3px solid ${MODES[active].color}`,
+        }}>
+          <div style={{ fontSize: '22px', fontWeight: 800, color: '#fafafa', marginBottom: '8px' }}>{MODES[active].label}</div>
+          <div style={{ fontSize: '15px', color: '#71717a', lineHeight: 1.7 }}>{MODES[active].desc}</div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Characters() {
+  return (
+    <section id="characters" style={{ padding: '100px 24px', maxWidth: '1100px', margin: '0 auto' }}>
+      <SectionLabel>Playable characters</SectionLabel>
+      <h2 style={{ fontSize: 'clamp(28px,4vw,42px)', fontWeight: 800, color: '#fafafa', marginBottom: '48px', letterSpacing: '-.02em' }}>
+        Pick your sorcerer.
+      </h2>
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        {CHARS.map((c, i) => (
+          <CharCard key={i} {...c} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CharCard({ icon, name, desc, color }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        flex: '1 1 180px', background: hov ? '#18181b' : '#111113',
+        border: `1px solid ${hov ? color + '66' : '#27272a'}`,
+        borderRadius: '12px', padding: '24px 20px', textAlign: 'center',
+        transition: 'all .2s', transform: hov ? 'translateY(-4px)' : 'none',
+        cursor: 'default',
+      }}
+    >
+      <div style={{ fontSize: '40px', marginBottom: '12px', animation: hov ? 'float 2s ease-in-out infinite' : 'none' }}>{icon}</div>
+      <div style={{ fontSize: '14px', fontWeight: 700, color: '#fafafa', marginBottom: '6px' }}>{name}</div>
+      <div style={{ fontSize: '12px', color: '#71717a', lineHeight: 1.6 }}>{desc}</div>
+    </div>
+  );
+}
+
+// ── Release config — update VERSION when you publish a new GitHub Release ──
+const RELEASE_VERSION = '1.0.8';
+const RELEASE_BASE    = `https://github.com/FurryCoder67/jujutsuhunters/releases/download/v${RELEASE_VERSION}`;
+
+const PLATFORMS = [
+  {
+    id: 'win',
+    label: 'Windows',
+    icon: '🪟',
+    badge: 'Windows 10 / 11',
+    file: `JujutsuHunters-Setup-${RELEASE_VERSION}-win.exe`,
+    note: 'NSIS installer · x64',
+    smartscreen: true,
+  },
+  {
+    id: 'mac',
+    label: 'macOS',
+    icon: '🍎',
+    badge: 'macOS 11+',
+    file: `JujutsuHunters-${RELEASE_VERSION}-mac.dmg`,
+    note: 'DMG · Intel + Apple Silicon',
+    smartscreen: false,
+  },
+  {
+    id: 'linux',
+    label: 'Linux',
+    icon: '🐧',
+    badge: 'Ubuntu / Debian / Arch',
+    file: `JujutsuHunters-${RELEASE_VERSION}-linux.AppImage`,
+    note: 'AppImage · x64',
+    smartscreen: false,
+  },
+];
+
+function detectOS() {
+  const ua = navigator.userAgent.toLowerCase();
+  if (ua.includes('win'))    return 'win';
+  if (ua.includes('mac'))    return 'mac';
+  if (ua.includes('linux'))  return 'linux';
+  return 'win'; // default
+}
+
+function Download() {
+  const [detectedOS] = useState(detectOS);
+  const [selected, setSelected]   = useState(detectOS);
+  const [downloading, setDownloading] = useState(false);
+
+  const current = PLATFORMS.find(p => p.id === selected);
+  const downloadUrl = `${RELEASE_BASE}/${current.file}`;
+
+  const handleDownload = () => {
+    setDownloading(true);
+    window.location.href = downloadUrl;
+    setTimeout(() => setDownloading(false), 3000);
+  };
+
+  return (
+    <section id="download" style={{
+      padding: '100px 24px',
+      background: 'radial-gradient(ellipse 70% 50% at 50% 100%, rgba(124,58,237,0.1) 0%, transparent 70%)',
+      borderTop: '1px solid #18181b',
+    }}>
+      <div style={{ maxWidth: '860px', margin: '0 auto' }}>
+        <SectionLabel>Desktop app</SectionLabel>
+        <h2 style={{ fontSize: 'clamp(28px,4vw,42px)', fontWeight: 800, color: '#fafafa', marginBottom: '16px', letterSpacing: '-.02em' }}>
+          Download &amp; install.
+        </h2>
+        <p style={{ color: '#71717a', fontSize: '16px', marginBottom: '48px', maxWidth: '500px', lineHeight: 1.7 }}>
+          A real native app — no browser tabs, no address bar.
+          Built with Electron. Runs on Windows, macOS, and Linux.
+        </p>
+
+        {/* OS selector tabs */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+          {PLATFORMS.map(p => (
+            <button
+              key={p.id}
+              onClick={() => setSelected(p.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '10px 20px', borderRadius: '8px', border: 'none',
+                cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600,
+                fontSize: '14px', transition: 'all .15s',
+                background: selected === p.id ? '#7c3aed' : '#18181b',
+                color:      selected === p.id ? '#fff'    : '#71717a',
+                outline: p.id === detectedOS && selected !== p.id
+                  ? '1px solid #3f3f46' : 'none',
+              }}
+            >
+              <span>{p.icon}</span>
+              {p.label}
+              {p.id === detectedOS && (
+                <span style={{
+                  fontSize: '10px', background: 'rgba(34,197,94,0.2)',
+                  color: '#22c55e', padding: '1px 6px', borderRadius: '10px',
+                  fontWeight: 700,
+                }}>detected</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Download card */}
+        <div style={{
+          background: '#111113', border: '1px solid #27272a',
+          borderRadius: '16px', padding: '36px 40px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: '32px', flexWrap: 'wrap',
+          marginBottom: '32px',
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <span style={{ fontSize: '36px' }}>{current.icon}</span>
+              <div>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: '#fafafa' }}>
+                  Jujutsu Hunters for {current.label}
+                </div>
+                <div style={{ fontSize: '13px', color: '#52525b', marginTop: '2px' }}>
+                  v{RELEASE_VERSION} · {current.note}
+                </div>
+              </div>
+            </div>
+            <div style={{
+              display: 'inline-block', fontSize: '12px', color: '#a1a1aa',
+              background: '#18181b', border: '1px solid #27272a',
+              borderRadius: '6px', padding: '4px 10px', marginTop: '4px',
+            }}>
+              {current.badge}
+            </div>
+            {current.smartscreen && (
+              <div style={{
+                marginTop: '12px', fontSize: '12px', color: '#71717a',
+                display: 'flex', alignItems: 'flex-start', gap: '6px', maxWidth: '380px',
+              }}>
+                <span style={{ color: '#f59e0b', flexShrink: 0 }}>⚠</span>
+                Windows may show a SmartScreen warning. Click <b style={{ color: '#a1a1aa' }}>More info → Run anyway</b> — the app is safe.
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={handleDownload}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              background: downloading ? '#16a34a' : '#7c3aed',
+              color: '#fff', border: 'none', borderRadius: '10px',
+              padding: '16px 32px', fontSize: '16px', fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'inherit',
+              transition: 'background .2s, transform .15s',
+              flexShrink: 0, minWidth: '200px', justifyContent: 'center',
+              transform: downloading ? 'scale(0.97)' : 'scale(1)',
+            }}
+            onMouseOver={e => { if (!downloading) e.currentTarget.style.background = '#6d28d9'; }}
+            onMouseOut={e => { if (!downloading) e.currentTarget.style.background = '#7c3aed'; }}
+          >
+            {downloading ? '✓ Downloading…' : `↓ Download .${current.file.split('.').pop()}`}
+          </button>
+        </div>
+
+        {/* All platforms list */}
+        <div style={{ marginBottom: '32px' }}>
+          <div style={{ fontSize: '12px', color: '#52525b', marginBottom: '12px', letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}>
+            All platforms
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {PLATFORMS.map(p => (
+              <div key={p.id} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 16px', background: '#111113',
+                border: '1px solid #27272a', borderRadius: '8px',
+                flexWrap: 'wrap', gap: '8px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '18px' }}>{p.icon}</span>
+                  <div>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#e4e4e7' }}>{p.label}</span>
+                    <span style={{ fontSize: '12px', color: '#52525b', marginLeft: '10px' }}>{p.note}</span>
+                  </div>
+                </div>
+                <a
+                  href={`${RELEASE_BASE}/${p.file}`}
+                  style={{
+                    fontSize: '13px', color: '#a78bfa', textDecoration: 'none',
+                    fontFamily: 'monospace', transition: 'color .15s',
+                  }}
+                  onMouseOver={e => e.target.style.color = '#c4b5fd'}
+                  onMouseOut={e => e.target.style.color = '#a78bfa'}
+                >
+                  {p.file}
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <a href={`https://github.com/FurryCoder67/jujutsuhunters/releases/tag/v${RELEASE_VERSION}`}
+            target="_blank" rel="noreferrer"
+            style={{
+              fontSize: '13px', color: '#71717a', textDecoration: 'none',
+              display: 'flex', alignItems: 'center', gap: '6px',
+              transition: 'color .15s',
+            }}
+            onMouseOver={e => e.currentTarget.style.color = '#a1a1aa'}
+            onMouseOut={e => e.currentTarget.style.color = '#71717a'}
+          >
+            View release on GitHub ↗
+          </a>
+          <span style={{ color: '#27272a' }}>·</span>
+          <a href="hunters.html"
+            style={{
+              fontSize: '13px', color: '#71717a', textDecoration: 'none',
+              transition: 'color .15s',
+            }}
+            onMouseOver={e => e.target.style.color = '#a1a1aa'}
+            onMouseOut={e => e.target.style.color = '#71717a'}
+          >
+            Or play in browser — no install needed
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Footer() {
+  return (
+    <footer style={{ borderTop: '1px solid #18181b', padding: '40px 24px', textAlign: 'center' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '12px' }}>
+        <span style={{ fontSize: '18px' }}>⚡</span>
+        <span style={{ fontWeight: 700, color: '#fafafa' }}>Jujutsu Hunters</span>
+      </div>
+      <p style={{ fontSize: '13px', color: '#52525b', lineHeight: 1.7 }}>
+        Fan-made game. Not affiliated with Gege Akutami or MAPPA.<br />
+        Jujutsu Kaisen © Gege Akutami / Shueisha.
+      </p>
+    </footer>
+  );
+}
+
+function SectionLabel({ children }) {
+  return (
+    <div style={{
+      fontSize: '11px', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
+      color: '#7c3aed', marginBottom: '12px',
+    }}>{children}</div>
+  );
+}
+
+function App() {
+  return (
+    <div>
+      <Navbar />
+      <Hero />
+      <Features />
+      <Modes />
+      <Characters />
+      <Download />
+      <Footer />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
 </body>
 </html>
