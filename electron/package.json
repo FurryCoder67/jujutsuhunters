@@ -8,13 +8,16 @@
   "private": true,
   "scripts": {
     "start": "electron .",
+    "generate-icons": "node generate-icons.js",
     "build:win":   "electron-builder --win --x64",
     "build:mac":   "electron-builder --mac --x64 --arm64",
     "build:linux": "electron-builder --linux --x64"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "electron": "29.4.6",
-    "electron-builder": "24.13.3"
+    "electron-builder": "24.13.3",
+    "png2icons": "^2.0.1"
   },
   "build": {
     "appId": "com.furryCoder67.jujutsuhunters",
